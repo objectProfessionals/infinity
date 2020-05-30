@@ -21,22 +21,17 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Random;
+import java.util.*;
 
-public class SVGInfinity {
+public class SVGVoid extends Base {
 
-    private static SVGInfinity generate = new SVGInfinity();
+    private static SVGVoid generate = new SVGVoid();
 
-    // shrinking paths
-    private String host = "../host/infinity/images/out/misc/infinity/";
-
-    private String file = "Virga";
-    private String dir = "Virga";
+    // use gmp -> edge detect ->shrinking paths
+    private String file = "WH3A";
+    private String dir = "map/WallHole";
     private String svg = ".svg";
-    private String opF = file + "_INF_OUT.png";
+    private String opF = file + "_VOID_OUT.png";
     private BufferedImage obi;
     private Graphics2D opG;
     private int w = -1;
@@ -45,32 +40,30 @@ public class SVGInfinity {
     private ArrayList<Color> cols = new ArrayList<Color>();
     private Color st = Color.decode("#FFFFFF");
     private Color en = Color.decode("#140000");
-    private int numSVGs = -1;
-    private NodeList svgPaths;
-    // private String[] cols = { "FFFFFF", "e7c9c9", "cd9b9b", "b87a7a",
-    // "9d5858",
-    // "7e3838", "682222", "501111", "2e0606", "140000" };
-    private int shrinkage = 10;
+    private ArrayList<String> paths = new ArrayList();
+    private int shrinkage = 5;
     private double shadowX = -shrinkage;
     private double shadowY = shrinkage;
-    private double offX = 0; // -shrinkage;
-    private double offY = 0; // -shrinkage;
+    private double offX = 0; //shrinkage;
+    private double offY = 0; //shrinkage;
+
     private int seed = 3;
-    private boolean sortCols = false;
-    private boolean sortColsDarkTop = false;
+    private boolean sortCols = true;
+    private boolean sortColsDarkTop = true;
 
     public static void main(String[] args) throws Exception {
         generate.doGeneration();
-
     }
 
     private void doGeneration() throws Exception {
         init();
         initImage();
-        // initCols();
-        initColsFromRnd();
-        for (int i = 0; i < numSVGs; i++) {
-            drawPath(i);
+        initCols();
+        //initColsFromRnd();
+        int i = 0;
+        for (String path : paths) {
+            drawPath(path, 19 - i);
+            i++;
         }
         save();
 
@@ -81,7 +74,7 @@ public class SVGInfinity {
         Random rnd1 = new Random(seed + 1);
         Random rnd2 = new Random(seed + 2);
         Random rnd3 = new Random(seed + 3);
-        for (int i = 0; i < numSVGs; i++) {
+        for (int i = 0; i < paths.size(); i++) {
             int r = (int) (rnd1.nextDouble() * 255);
             int g = (int) (rnd2.nextDouble() * 255);
             int b = (int) (rnd3.nextDouble() * 255);
@@ -108,7 +101,7 @@ public class SVGInfinity {
 
     private void initCols2() throws Exception {
         BufferedImage bi = ImageIO.read(new File(dir + "/" + file + "COLS.png"));
-        double n = numSVGs;
+        double n = paths.size();
         for (int x = 0; x < n * 100; x = x + 100) {
             int rgb = bi.getRGB(x, 50);
             Color col = new Color(rgb);
@@ -127,7 +120,7 @@ public class SVGInfinity {
         double g2 = en.getGreen();
         double b2 = en.getBlue();
 
-        double n = numSVGs;
+        double n = paths.size();
         for (double i = 0; i < n; i++) {
 
             double fac = (i + 1) / (n + 1);
@@ -143,8 +136,7 @@ public class SVGInfinity {
         cols.add(en);
     }
 
-    private void drawPath(int svgNum) throws Exception {
-        String path = svgPaths.item(svgNum).getNodeValue();
+    private void drawPath(String path, int svgNum) throws Exception {
         Shape shape = parsePathShape(path);
         Area inner = new Area(shape);
         double scale = Math.pow(((double) (cols.size() - svgNum)) / ((double) cols.size()), 0.33);
@@ -159,10 +151,15 @@ public class SVGInfinity {
         Area outer = new Area(rect);
         outer.subtract(inner);
 
-        // offX = 0.1 + Math.pow(offX + 1, 0.6);
-        // offY = 0.5 + Math.pow(offY + 1, 0.3);
-        AffineTransform tr = AffineTransform.getTranslateInstance(offX * svgNum, offY * svgNum);
-        outer.transform(tr);
+        outer = inner;
+
+        offX = offX - 2;
+        offY = offY - 2;
+        //double f = 10;
+        //offX = f * Math.pow(offX + 1, 0.6);
+        //offY = f * Math.pow(offY + 1, 0.3);
+//        AffineTransform tr = AffineTransform.getTranslateInstance(offX * svgNum, offY * svgNum);
+//        outer.transform(tr);
 
         Color col = cols.get(svgNum);
         opG.setBackground(new Color(0, 0, 0, 255));
@@ -170,7 +167,7 @@ public class SVGInfinity {
             opG.setColor(col);
             opG.fill(outer);
         } else {
-            double tot = numSVGs;
+            double tot = paths.size();
             double part = 1 / tot;
             for (double i = 1; i < tot + 1; i++) {
                 double fr = 1 - (i / tot);
@@ -227,12 +224,19 @@ public class SVGInfinity {
         builder = factory.newDocumentBuilder();
 
         Document document = builder.parse(host + dir + "/" + file + svg);
-        String xpathExpression = "//path/@d";
         XPathFactory xpf = XPathFactory.newInstance();
         XPath xpath = xpf.newXPath();
+
+        String xpathExpression = "//path";
         XPathExpression expression = xpath.compile(xpathExpression);
-        svgPaths = (NodeList) expression.evaluate(document, XPathConstants.NODESET);
-        numSVGs = svgPaths.getLength();
+        NodeList svgPaths = (NodeList) expression.evaluate(document, XPathConstants.NODESET);
+        TreeMap<String, String> id2Path = new TreeMap();
+        for (int i = 0; i < svgPaths.getLength(); i++) {
+            String id = svgPaths.item(i).getAttributes().getNamedItem("id").getNodeValue();
+            String path = svgPaths.item(i).getAttributes().getNamedItem("d").getNodeValue();
+            id2Path.put(id, path);
+            paths.add(path);
+        }
 
         String viewBox = document.getElementsByTagName("svg").item(0).getAttributes().getNamedItem("viewBox")
                 .getNodeValue().substring(4);

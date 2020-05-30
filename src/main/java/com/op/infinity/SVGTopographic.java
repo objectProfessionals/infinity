@@ -31,9 +31,11 @@ public class SVGTopographic {
 
     private String host = "../host/infinity/images/out/misc/infinity/";
     private String dir = host + "map/";
-    private String file = "VirgaLand";
+    private String file = "VirgaSq2";
+    private String colsIndex = "index";
     private String svg = ".svg";
     private String opF = file + "_TOP_OUT.png";
+    private BufferedImage ibi;
     private BufferedImage obi;
     private Graphics2D opG;
     private int w = -1;
@@ -49,17 +51,18 @@ public class SVGTopographic {
     private double numSVGs = -1;
     private double leave = 0;
     private int seed = 1;
+
     private String[] colsStrBeg = {"1681bf", "2889c1", "509ecb", "6faccf", "99c1d7"};
     private String[] colsStrEnd = {"606344", "76715c", "968e78", "bfb8a4", "e8e0d3"};
     private String lines[] = {"8f6b6b", "806765", "776460", "73645f", "5f5653"};
-    private double shrinkage = 5;
-    private double shadowX = -shrinkage / 2.0;
+    private double shrinkage = 0; //10;
+    private double shadowX = shrinkage / 2.0;
     private double shadowY = -shrinkage / 2.0;
     private double filterShadowRad = shrinkage / 2.0;
-    private float filterShadowAlpha = 0.75f;
+    private float filterShadowAlpha = 0.5f;
     private double totDegsRot = 0.0;
-    private boolean onlyInner = false;
     private boolean lighterStack = true;
+    //Gimp Filters-Edge Detect-Generate Paths By Grey
 
     public static void main(String[] args) throws Exception {
         generate.doGeneration();
@@ -69,19 +72,33 @@ public class SVGTopographic {
     private void doGeneration() throws Exception {
         initSVGDocument();
         initNodes();
-        initColsFromStr();
+        //initColsFromStr();
+        initColsFromImage();
         // initColsFromRnd();
         initImage();
 
         // initColsFromPalette();
         opG.setClip(border, border, w, h);
 
-        drawPath();
+        drawPaths();
         drawExtras();
         opG.setClip(null);
 
         save();
 
+    }
+
+    private void initColsFromImage() throws IOException {
+        BufferedImage bi = ImageIO.read(new File(dir + colsIndex + ".jpg"));
+        //numSVGs = num - 1;
+        int num = (int) numSVGs + 1;
+        int x = bi.getWidth() / 2;
+        for (int y = bi.getHeight() / (num * 2); y < bi.getHeight(); y = y + bi.getHeight() / num) {
+            int rgb = bi.getRGB(x, y);
+            Color col = new Color(rgb);
+            cols.add(col);
+        }
+        Collections.reverse(cols);
     }
 
     private void initColsFromPalette() throws Exception {
@@ -195,7 +212,7 @@ public class SVGTopographic {
 
     }
 
-    private void drawPath() throws Exception {
+    private void drawPaths() throws Exception {
         for (int i = 0; i < numSVGs; i++) {
             int c = (int) numSVGs - i - 1;
             if (lighterStack) {
@@ -267,10 +284,6 @@ public class SVGTopographic {
 
         Area input = outer;
 
-        if (onlyInner) {
-            input = inner;
-        }
-
         opG.setBackground(new Color(0, 0, 0, 255));
         if (fileNum == numSVGs - 1) {
             int cPos = (int) numSVGs - fileNum;
@@ -284,17 +297,20 @@ public class SVGTopographic {
             Color col = cols.get(cPos);
             drawInner(fileNum, input, col);
         }
-        System.out.println(fileNum);
+        System.out.println("svg=" + fileNum);
     }
 
     private GradientPaint getGradientPaint(Color col) {
         Color col1 = col.brighter();
         Color col2 = col.darker();
-        GradientPaint gp = new GradientPaint(w, 0, col, 0, h, col);
+        GradientPaint gp = new GradientPaint(w, 0, col1, 0, h, col2);
         return gp;
     }
 
     private void drawInner(double fileNum, Area outer, Color col) throws NoninvertibleTransformException {
+        //opG.setClip(outer.createTransformedArea(AffineTransform.getTranslateInstance(border, border)));
+        //opG.drawImage(ibi, null, border, border);
+
         double ww = w + 2 * border;
         double hh = h + 2 * border;
         double f = fileNum / numSVGs; // FTB = 0 -> 1
@@ -313,31 +329,39 @@ public class SVGTopographic {
         t.translate(border, border);
         Shape trans = t.createTransformedShape(outer);
 
-        double filterRad = Math.sqrt(shadowX * shadowX + shadowY * shadowY);
-        if (filterShadowRad > -1) {
-            filterRad = filterShadowRad;
-        }
         BufferedImage bi = new BufferedImage(w + 2 * border, h + 2 * border, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = (Graphics2D) bi.getGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
-        g.setPaint(getGradientPaint(col));
+        //g.setPaint(getGradientPaint(col));
+        g.setColor(col);
         g.fill(trans);
         //g.translate(border, border);
-        ShadowFilter filter = new ShadowFilter((int) filterRad, (int) shadowX, (int) shadowY, 0.5f);
+        double filterRad = Math.sqrt(shadowX * shadowX + shadowY * shadowY);
+        if (filterShadowRad > -1) {
+            filterRad = filterShadowRad;
+        }
+        ShadowFilter filter = new ShadowFilter((int) filterRad, (int) shadowX, (int) shadowY, filterShadowAlpha);
         filter.filter(bi, obi);
 
-        float str = w / 600;
+//        EmbossFilter filter2 = new EmbossFilter(135, 135, 100);
+//        filter2.filter(bi, obi);
+
+        float str = 1;
         if (fileNum == 0) {
             opG.setPaint(Color.decode("#" + lines[0]));
             BasicStroke st = new BasicStroke(str);
             opG.setStroke(st);
-            System.out.println(col);
             //addTextToPath(g, trans);
         } else {
             int ii = (int) (fileNum % lines.length);
-            opG.setPaint(Color.decode("#" + lines[ii]));
+
+//            opG.setPaint(Color.decode("#" + lines[ii]));
+//            float strokes = (ii / (lines.length - 1)) + 1;
+//            BasicStroke st = new BasicStroke(str * strokes);
+//            opG.setStroke(st);
+
             float st = str * (ii + 1);
             float dash1[] = {st};
             BasicStroke dashed = new BasicStroke(str, BasicStroke.CAP_ROUND, BasicStroke.JOIN_MITER, st, dash1,
@@ -346,6 +370,7 @@ public class SVGTopographic {
             //addTextToPath(g, trans);
         }
         opG.draw(trans);
+
     }
 
     private void addTextToPath(Graphics2D g, Shape trans) {
@@ -366,8 +391,8 @@ public class SVGTopographic {
         int ddx = (w - ((w / d) * d)) / 2;
         int ddy = (h - ((h / d) * d)) / 2;
 
-        float str = w / 600;
-        float dashStr = w / 200;
+        float str = 1 + (w / 600);
+        float dashStr = 1 + (w / 200);
         float dash1[] = {dashStr * 2, dashStr * 0.5f, dashStr, dashStr * 0.5f};
         int c = 0;
         String lineCol = "312004";
@@ -390,10 +415,14 @@ public class SVGTopographic {
             opG.drawLine(x + border, border, x + border, h + border);
             c++;
         }
-
+        opG.setColor(Color.WHITE);
+        Area outer = new Area(new Rectangle2D.Double(0, 0, w + border * 2, h + border * 2));
+        Area inner = new Area(new Rectangle2D.Double(border, border, w, h));
+        outer.subtract(inner);
+        opG.fill(outer);
     }
 
-    private void initImage() {
+    private void initImage() throws IOException {
         obi = new BufferedImage(w + border * 2, h + border * 2, BufferedImage.TYPE_INT_ARGB);
         opG = (Graphics2D) obi.getGraphics();
         opG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -402,6 +431,8 @@ public class SVGTopographic {
         opG.fillRect(0, 0, w + border * 2, h + border * 2);
         opG.setColor(cols.get(0));
         opG.fillRect(border, border, w, h);
+
+        ibi = ImageIO.read(new File(dir + file + ".jpg"));
     }
 
     private void initSVGDocument() throws Exception {
