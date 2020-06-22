@@ -3,12 +3,11 @@ package com.op.infinity.strips;
 import com.op.infinity.Base;
 
 import java.awt.*;
-import java.awt.geom.Area;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Random;
 
 import static java.awt.BasicStroke.CAP_ROUND;
@@ -20,19 +19,21 @@ public class Strips extends Base {
     private static Strips strips = new Strips();
     private String dir = host + "strips/";
     private String opFile = "Strips";
-    private int wmm = 200;
-    private int hmm = 200;
+    private int wmm = 210;
+    private int hmm = 297;
+    private int strmm = 5;
+    private int shadmm = 2;
     private double mm2in = 25.4;
     private double dpi = 300;
     private int w = (int) ((((double) wmm) / mm2in) * dpi);
     private int h = (int) ((((double) hmm) / mm2in) * dpi);
 
-    private int shaddow = w / 200;
+    private int shaddow = (int) ((((double) shadmm) / mm2in) * dpi);
     private BufferedImage obi;
     private Graphics2D opG;
-    private float outerStroke = 50;
-    private float innerStroke = 46;
-    private int tot = 200;
+    private float outerStroke = (float) ((((double) strmm) / mm2in) * dpi);
+    private float innerStroke = outerStroke * 0.9f;
+    private int tot = 400;
     private Random random = new Random(0);
     private double flowerMinRad = 50;
     private double flowerMaxRad = 200;
@@ -51,117 +52,95 @@ public class Strips extends Base {
     }
 
     private void drawAll() {
-        for (int n = 0; n < tot; n++) {
-            //drawLines();
+        for (double n = 0; n < tot; n++) {
+            drawLines(n);
             //drawCircles();
-            drawFlowers(n);
+            System.out.println("line=" + n);
         }
     }
 
-    private void drawFlowers(int i) {
-        int aInc = 1;
-        double cx = (random.nextDouble() * ((double) (w)));
-        double cy = (random.nextDouble() * ((double) (h)));
-        double cw = w / 2;
-        double ch = h / 2;
-        double rad = (flowerMinRad) + (random.nextDouble() * (flowerMaxRad - flowerMinRad));
-        double crx = cx - cw;
-        double cry = cy - ch;
-        double crr = Math.sqrt(crx * crx + cry * cry);
-        double maxcr = Math.sqrt((w * w / 4) + (h * h / 4));
-
-        double pass = 0.5 + 0.5 * (crr / maxcr);
-        double n = 3 + (int) (random.nextDouble() * 9);
-        double d = 1 + (int) (random.nextDouble() * 2);
-        double k = n / d;
-
-        double radInF = 0.5;
-        Stroke stroke = new BasicStroke(outerStroke * 0.1f, CAP_ROUND, BasicStroke.JOIN_ROUND);
-        Stroke strokeLine = new BasicStroke(outerStroke * 0.05f, CAP_ROUND, BasicStroke.JOIN_ROUND);
-
-        Path2D pathOuter = new Path2D.Double();
-        Path2D pathInner = new Path2D.Double();
-        ArrayList<Path2D> lines = new ArrayList<>();
-        double aRnd = Math.toRadians(random.nextDouble() * 360);
-        System.out.println(i);
-        for (double a = 0; a <= 720; a = a + aInc) {
-            double ang = Math.toRadians(a);
-            double x = cx + rad * Math.cos(k * ang) * Math.cos(ang + aRnd);
-            double y = cy + rad * Math.cos(k * ang) * Math.sin(ang + aRnd);
-            double xi = cx + rad * radInF * Math.cos(k * ang) * Math.cos(ang + aRnd);
-            double yi = cy + rad * radInF * Math.cos(k * ang) * Math.sin(ang + aRnd);
-            if (a == 0) {
-                pathOuter.moveTo(x, y);
-                pathInner.moveTo(xi, yi);
-            } else {
-                pathOuter.lineTo(x, y);
-                pathInner.lineTo(xi, yi);
-            }
-
-            if (a % 30 == 0) {
-                Path2D line = new Path2D.Double();
-                line.moveTo(cx + rad * radInF * Math.cos(ang + aRnd), cy + rad * radInF * Math.sin(ang + aRnd));
-                line.lineTo(cx + rad * Math.cos(ang + aRnd), cy + rad * Math.sin(ang + aRnd));
-                lines.add(line);
-            }
-        }
-
-        Area area = new Area(pathOuter);
-        area.subtract(new Area(pathInner));
-
-        //pass = 0.5*((cx+(double)w/2)/(double)w);
-        opG.setColor(getGrey(pass));
-        opG.fill(area);
-
-        opG.setColor(BLACK);
-        opG.setStroke(stroke);
-        opG.draw(area);
-
-//        opG.setColor(getRandomColor(pass));
-//        opG.setStroke(strokeLine);
-//        for (Path2D line : lines) {
-//            opG.draw(line);
-//        }
-    }
-
-    private Color getGrey(double pass) {
-        int g = (int) (pass * 255.0);
-        return new Color(g, g, g);
-    }
-
-    private void drawLines() {
-        boolean t2b = random.nextDouble() > 0.5;
+    private void drawLines(double n) {
+        double nn = n / (double) tot;
+        double tblr = random.nextDouble();
         int rx1 = 0;
         int ry1 = 0;
         int rx2 = 0;
         int ry2 = 0;
 
-        if (t2b) {
-            rx1 = (int) (random.nextDouble() * ((double) (w)));
-            ry1 = 0;
-            rx2 = (int) (random.nextDouble() * ((double) (w)));
+        double ww = (double) w;
+        double hh = (double) h;
+
+        if (tblr > 0.833) {
+            //t2b
+            rx1 = (int) (random.nextDouble() * ww);
+            ry1 = (int) (-hh * 0.1);
+            rx2 = (int) (random.nextDouble() * ww);
             ry2 = h;
+        } else if (tblr > 0.666) {
+            //ltr
+            rx1 = (int) (-ww * 0.1);
+            ry1 = (int) (random.nextDouble() * hh);
+            rx2 = (int) (ww * 1.1);
+            ry2 = (int) (random.nextDouble() * hh);
+        } else if (tblr > 0.499) {
+            //l2t
+            rx1 = (int) (-ww * 0.1);
+            ry1 = (int) (random.nextDouble() * hh);
+            rx2 = (int) (random.nextDouble() * ww);
+            ry2 = (int) (-hh * 0.1);
+        } else if (tblr > 0.33) {
+            //ltb
+            rx1 = (int) (-ww * 0.1);
+            ry1 = (int) (random.nextDouble() * hh);
+            rx2 = (int) (random.nextDouble() * ww);
+            ry2 = (int) (hh * 1.1);
+        } else if (tblr > 0.166) {
+            //r2t
+            rx1 = (int) (ww * 1.1);
+            ry1 = (int) (random.nextDouble() * hh);
+            rx2 = (int) (random.nextDouble() * ww);
+            ry2 = (int) (-hh * 0.1);
         } else {
-            rx1 = 0;
-            ry1 = (int) (random.nextDouble() * ((double) (h)));
-            rx2 = w;
-            ry2 = (int) (random.nextDouble() * ((double) (h)));
+            //rtb
+            rx1 = (int) (ww * 1.1);
+            ry1 = (int) (random.nextDouble() * hh);
+            rx2 = (int) (random.nextDouble() * ww);
+            ry2 = (int) (hh * 1.1);
         }
 
-        Stroke outer = new BasicStroke(outerStroke);
-        Stroke inner = new BasicStroke(innerStroke);
+        float rndTh = (float) (outerStroke * 0.5 * (random.nextDouble() - 0.5));
+        Stroke outer = new BasicStroke(outerStroke + rndTh, CAP_ROUND, BasicStroke.JOIN_ROUND);
+        Stroke inner = new BasicStroke(innerStroke + rndTh, CAP_ROUND, BasicStroke.JOIN_ROUND);
 
-        opG.setColor(new Color(0.5f, 0.5f, 0.5f, 0.5f));
+        Path2D path = new Path2D.Double();
+        path.moveTo(rx1, ry1);
+        double dy = ry2 - ry1;
+        double dx = rx2 - rx1;
+        double radiusMistakeMax = outerStroke * 0.25;
+        double len = Math.sqrt(dy * dy + dx * dx);
+        double ang = Math.atan2(dy, dx);
+        double lStep = 10;
+        for (double l = 0; l < len; l = l + lStep) {
+            double xn = rx1 + dx * (l / len);
+            double yn = ry1 + dy * (l / len);
+            double dRnd = (random.nextDouble() * radiusMistakeMax) - radiusMistakeMax * 0.5;
+            path.lineTo(xn + dRnd * Math.cos(ang - 90), yn + dRnd * Math.sin(ang - 90));
+        }
+
+        path.transform(AffineTransform.getTranslateInstance(shaddow, shaddow));
+        opG.setColor(new Color(0.15f, 0.15f, 0.15f, 0.5f));
         opG.setStroke(outer);
-        opG.drawLine(rx1 + shaddow, ry1 + shaddow, rx2 + shaddow, ry2 + shaddow);
+        opG.draw(path);
 
-        opG.setColor(BLACK);
+        path.transform(AffineTransform.getTranslateInstance(-shaddow, -shaddow));
+        int g = (int) (nn * 255);
+        opG.setColor(new Color(g, g, g));
         opG.setStroke(outer);
-        opG.drawLine(rx1, ry1, rx2, ry2);
+        opG.draw(path);
 
-        opG.setColor(getRandomColor(1));
+        opG.setColor(getRandomColor(nn));
         opG.setStroke(inner);
-        opG.drawLine(rx1, ry1, rx2, ry2);
+        opG.draw(path);
     }
 
     private void drawCircles() {
