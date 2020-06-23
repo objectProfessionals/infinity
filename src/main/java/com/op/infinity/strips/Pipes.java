@@ -5,6 +5,8 @@ import com.op.infinity.Base;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -19,8 +21,8 @@ public class Pipes extends Base {
 
     private static Pipes strips = new Pipes();
     private String dir = host + "pipes/";
-    private int wmm = 200;
-    private int hmm = 200;
+    private int wmm = 210;
+    private int hmm = 297;
     private double mm2in = 25.4;
     private double dpi = 300;
     private int w = (int) ((((double) wmm) / mm2in) * dpi);
@@ -30,19 +32,21 @@ public class Pipes extends Base {
     private Graphics2D opG;
     private BufferedImage pipeBI;
     private BufferedImage revPipeBI;
-    private double bF = 0.1; //0.1
+    private double bF = 0.075; //0.1
     private double pipeRad = 50;
     private double minLen = 25; //pipeRad * 1;
     private double maxLenF = 5;
     private Random random = new Random(0);
-    private double totPipes = 200;
+    private double totPipes = 5000;
     private double pipeAngInc = 0.5;
 
     private double stroke = 5;
     private double pipeDrawInc = 0.25;
     private double pipeEdgeStrokeF = 0.05;
-    private boolean pipeByImage = true;
-    private String stripFile = "pipeStrip";
+    private boolean pipeByImage = false;
+    private boolean greyFromHeightOrLen = false;
+    private boolean rectangleBorder = false;
+    private String stripFile = "pipeStripBW";
     private String opFile = (pipeByImage ? stripFile : "Pipes") + (int) pipeRad + "x" + (int) totPipes;
 
     public static void main(String[] args) throws Exception {
@@ -234,6 +238,9 @@ public class Pipes extends Base {
         double len = Math.sqrt(dx * dx + dy * dy);
         double ang = Math.atan2(dy, dx);
         int g = (int) ((0.2 + nF * 0.8) * 255);
+        if (greyFromHeightOrLen) {
+            g = (int) (((h - h * (1 * bF) - y1) / ((h - h * (1 * bF)))) * 255);
+        }
         Color colIn = new Color(g, g, g);
         for (double l = len * pipeEdgeStrokeF; l < len * (1 - pipeEdgeStrokeF); l = l + pipeDrawInc) {
             double xx = x1 + l * cos(ang);
@@ -266,12 +273,20 @@ public class Pipes extends Base {
         double y1 = (y1a + y1b) / 2;
         double xx = (x1 - (w / 2));
         double yy = (y1 - (h / 2));
-        double r = Math.sqrt(xx * xx + yy * yy);
-        double rmax = w * (0.5 - 2 * bF);
         double posAng = (360 + Math.toDegrees(Math.atan2(-yy, xx))) % 360;
         double ang = 0;
         double pos = 0;
-        if (r > rmax) {
+
+        int wb = (int) (w * bF * 2);
+        int hb = (int) (h * bF * 2);
+        int www = (int) (w * (1 - 4 * bF));
+        int hhh = (int) (h * (1 - 4 * bF));
+        Shape limit = new Ellipse2D.Double(wb, hb, www, hhh);
+        if (rectangleBorder) {
+            limit = new Rectangle2D.Double(wb, hb, www, hhh);
+        }
+
+        if (!limit.contains(x1, y1)) {
             if (posAng < 60) {
                 ang = 210;
                 pos = 4;
