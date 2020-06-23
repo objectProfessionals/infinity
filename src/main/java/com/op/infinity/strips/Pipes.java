@@ -19,7 +19,6 @@ public class Pipes extends Base {
 
     private static Pipes strips = new Pipes();
     private String dir = host + "pipes/";
-    private String stripFile = "pipeStrip2.png";
     private int wmm = 200;
     private int hmm = 200;
     private double mm2in = 25.4;
@@ -35,14 +34,16 @@ public class Pipes extends Base {
     private double pipeRad = 50;
     private double minLen = 25; //pipeRad * 1;
     private double maxLenF = 5;
-    private double stroke = 5;
-    private Random random = new Random(1);
-    private double totPipes = 1000;
-    private double pipeDrawInc = 0.25;
+    private Random random = new Random(0);
+    private double totPipes = 200;
     private double pipeAngInc = 0.5;
-    private String opFile = "Pipes" + (int) pipeRad + "x" + (int) totPipes;
-    private double pipeEdgeStrokeF = 0.05;
 
+    private double stroke = 5;
+    private double pipeDrawInc = 0.25;
+    private double pipeEdgeStrokeF = 0.05;
+    private boolean pipeByImage = true;
+    private String stripFile = "pipeStrip";
+    private String opFile = (pipeByImage ? stripFile : "Pipes") + (int) pipeRad + "x" + (int) totPipes;
 
     public static void main(String[] args) throws Exception {
         strips.run();
@@ -68,13 +69,8 @@ public class Pipes extends Base {
         double lastAng = 270;
         double lastPos = 5;
 
-//        opG.setColor(GREEN);
-//        opG.fillRect((int) x1a, (int) y1a, 10, 10);
-
         opG.setColor(BLACK);
         int tries = 0;
-        Color c1 = BLACK;
-        Color c2 = BLACK;
         int resets = 0;
         for (double n = 0; n < totPipes; ) {
             double[] angs = getAngle(lastAng, x1a, y1a, x1b, y1b, bF);
@@ -85,7 +81,6 @@ public class Pipes extends Base {
                 System.out.println("n=" + (int) n + " angN=" + angN);
                 double len = calcLen(x1a, y1a);
                 if (!isInside(len, angN, x1a, y1a, bF)) {
-//                    return;
                     if (tries < 20) {
 //                        angN = (360 + lastAng - 180) % 360;
 //                        len = 2 * maxLenF * minLen;
@@ -113,7 +108,7 @@ public class Pipes extends Base {
                         x2b = x1b + l * cos(Math.toRadians(lastAng));
                         y2b = y1b - l * sin(Math.toRadians(lastAng));
 
-                        drawPipeSection(c1, x2a, y2a, c2, x2b, y2b, nF, false);
+                        drawPipeSection(x2a, y2a, x2b, y2b, nF, false);
                         l++;
                     }
                     System.out.println("reset=" + resets);
@@ -126,7 +121,7 @@ public class Pipes extends Base {
                         x2b = x1b + len * (l / len) * cos(Math.toRadians(lastAng));
                         y2b = y1b - len * (l / len) * sin(Math.toRadians(lastAng));
 
-                        drawPipeSection(c1, x2a, y2a, c2, x2b, y2b, nF, false);
+                        drawPipeSection(x2a, y2a, x2b, y2b, nF, false);
                     }
                 }
 
@@ -139,7 +134,7 @@ public class Pipes extends Base {
                         for (double a = lastAng; a < angN + 360; a = a + pipeAngInc) {
                             nxa = cx + pipeRad * cos(Math.toRadians(a - 90));
                             nya = cy - pipeRad * sin(Math.toRadians(a - 90));
-                            drawPipeSection(c1, cx, cy, c2, nxa, nya, nF, true);
+                            drawPipeSection(cx, cy, nxa, nya, nF, true);
                         }
                         x1b = cx;
                         y1b = cy;
@@ -153,7 +148,7 @@ public class Pipes extends Base {
                         for (double a = lastAng; a > angN; a = a - pipeAngInc) {
                             nxb = cx + pipeRad * cos(Math.toRadians(a + 90));
                             nyb = cy - pipeRad * sin(Math.toRadians(a + 90));
-                            drawPipeSection(c2, cx, cy, c1, nxb, nyb, nF, false);
+                            drawPipeSection(cx, cy, nxb, nyb, nF, false);
                         }
                         x1a = cx;
                         y1a = cy;
@@ -169,7 +164,7 @@ public class Pipes extends Base {
                         for (double a = lastAng; a > angN - 360; a = a - pipeAngInc) {
                             nxb = cx + pipeRad * cos(Math.toRadians(a + 90));
                             nyb = cy - pipeRad * sin(Math.toRadians(a + 90));
-                            drawPipeSection(c2, cx, cy, c1, nxb, nyb, nF, false);
+                            drawPipeSection(cx, cy, nxb, nyb, nF, false);
                         }
                         x1a = cx;
                         y1a = cy;
@@ -183,7 +178,7 @@ public class Pipes extends Base {
                         for (double a = lastAng; a < angN; a = a + pipeAngInc) {
                             nxa = cx + pipeRad * cos(Math.toRadians(a - 90));
                             nya = cy - pipeRad * sin(Math.toRadians(a - 90));
-                            drawPipeSection(c1, cx, cy, c2, nxa, nya, nF, true);
+                            drawPipeSection(cx, cy, nxa, nya, nF, true);
                         }
                         x1b = cx;
                         y1b = cy;
@@ -220,11 +215,18 @@ public class Pipes extends Base {
         return true;
     }
 
-    private void drawPipeSectionByLineOLD(Color col1, double x1, double y1, Color col2, double x2, double y2, double nF) {
+    private void drawPipeSection(double x1, double y1, double x2, double y2, double nF, boolean reversePrint) {
+        if (pipeByImage) {
+            drawPipeSectionByImage(x1, y1, x2, y2, nF, reversePrint);
+        } else {
+            drawPipeSectionByLine(x1, y1, x2, y2, nF);
+        }
+    }
+
+    private void drawPipeSectionByLine(double x1, double y1, double x2, double y2, double nF) {
         double th2 = stroke * 0.5;
-        opG.setColor(col1);
+        opG.setColor(BLACK);
         opG.fillRect((int) (x1 - th2), (int) (y1 - th2), (int) stroke, (int) stroke);
-        opG.setColor(col2);
         opG.fillRect((int) (x2 - th2), (int) (y2 - th2), (int) stroke, (int) stroke);
 
         double dx = x2 - x1;
@@ -242,7 +244,7 @@ public class Pipes extends Base {
         }
     }
 
-    private void drawPipeSection(Color col1, double x1, double y1, Color col2, double x2, double y2, double nF, boolean reversePrint) {
+    private void drawPipeSectionByImage(double x1, double y1, double x2, double y2, double nF, boolean reversePrint) {
         double dx = x2 - x1;
         double dy = y2 - y1;
         double ang = Math.atan2(dy, dx);
@@ -330,11 +332,11 @@ public class Pipes extends Base {
         opG.setColor(WHITE);
         opG.fillRect(0, 0, w, h);
 
-        BufferedImage bi = ImageIO.read(new File(dir + stripFile));
+        BufferedImage bi = ImageIO.read(new File(dir + stripFile + ".png"));
         pipeBI = new BufferedImage((int) pipeRad, 1, BufferedImage.TYPE_INT_ARGB);
         Graphics2D pipeG = (Graphics2D) pipeBI.getGraphics();
-        double s = pipeRad / (double) pipeBI.getWidth();
-        AffineTransform sc = AffineTransform.getScaleInstance(1 / s, 1);
+        double s = pipeRad / ((double) bi.getWidth());
+        AffineTransform sc = AffineTransform.getScaleInstance(s, 1);
         pipeG.drawImage(bi, sc, null);
 
         revPipeBI = new BufferedImage((int) pipeRad, 1, BufferedImage.TYPE_INT_ARGB);
