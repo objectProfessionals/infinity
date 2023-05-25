@@ -11,18 +11,17 @@ import java.io.IOException;
 import java.util.Random;
 
 import static java.awt.BasicStroke.CAP_ROUND;
-import static java.awt.Color.BLACK;
-import static java.awt.Color.WHITE;
+import static java.awt.Color.*;
 
 public class Strips extends Base {
 
     private static Strips strips = new Strips();
     private String dir = host + "strips/";
     private String opFile = "Strips";
-    private int wmm = 210;
-    private int hmm = 297;
-    private int strmm = 5;
-    private int shadmm = 2;
+    private int wmm = 155; //window = 175, 565 //tot paper = 190, 580;
+    private int hmm = 545;
+    private int strmm = 3;
+    private int shadmm = 1;
     private double mm2in = 25.4;
     private double dpi = 300;
     private int w = (int) ((((double) wmm) / mm2in) * dpi);
@@ -33,10 +32,13 @@ public class Strips extends Base {
     private Graphics2D opG;
     private float outerStroke = (float) ((((double) strmm) / mm2in) * dpi);
     private float innerStroke = outerStroke * 0.9f;
-    private int tot = 400;
+    private int tot = 500;
     private Random random = new Random(0);
-    private double flowerMinRad = 50;
-    private double flowerMaxRad = 200;
+    private boolean onlyBW = false;
+    private double strVariance = 0.1;
+    private boolean setThickness = false;
+    private float shadowColor = 0.15f;
+    private double randomnessF = 0.1;
 
 
     public static void main(String[] args) throws Exception {
@@ -108,7 +110,10 @@ public class Strips extends Base {
             ry2 = (int) (hh * 1.1);
         }
 
-        float rndTh = (float) (outerStroke * 0.5 * (random.nextDouble() - 0.5));
+        float rndTh = (float) (outerStroke * 2 * randomnessF * (random.nextDouble() - 0.5));
+        if (setThickness) {
+            rndTh = 1;
+        }
         Stroke outer = new BasicStroke(outerStroke + rndTh, CAP_ROUND, BasicStroke.JOIN_ROUND);
         Stroke inner = new BasicStroke(innerStroke + rndTh, CAP_ROUND, BasicStroke.JOIN_ROUND);
 
@@ -116,7 +121,7 @@ public class Strips extends Base {
         path.moveTo(rx1, ry1);
         double dy = ry2 - ry1;
         double dx = rx2 - rx1;
-        double radiusMistakeMax = outerStroke * 0.25;
+        double radiusMistakeMax = outerStroke * strVariance;
         double len = Math.sqrt(dy * dy + dx * dx);
         double ang = Math.atan2(dy, dx);
         double lStep = 10;
@@ -128,17 +133,25 @@ public class Strips extends Base {
         }
 
         path.transform(AffineTransform.getTranslateInstance(shaddow, shaddow));
-        opG.setColor(new Color(0.15f, 0.15f, 0.15f, 0.5f));
+        opG.setColor(new Color(shadowColor, shadowColor, shadowColor, 0.5f));
         opG.setStroke(outer);
         opG.draw(path);
 
         path.transform(AffineTransform.getTranslateInstance(-shaddow, -shaddow));
-        int g = (int) (nn * 255);
-        opG.setColor(new Color(g, g, g));
+        if (onlyBW) {
+            opG.setColor(BLACK);
+        } else {
+            int g = (int) (nn * 255);
+            opG.setColor(new Color(g, g, g));
+        }
         opG.setStroke(outer);
         opG.draw(path);
 
-        opG.setColor(getRandomColor(nn));
+        if (onlyBW) {
+            opG.setColor(WHITE);
+        } else {
+            opG.setColor(getRandomColor(nn));
+        }
         opG.setStroke(inner);
         opG.draw(path);
     }
@@ -196,6 +209,9 @@ public class Strips extends Base {
     }
 
     private Color getRandomColor(double lightness) {
+        if (onlyBW) {
+            return WHITE;
+        }
         int r = (int) (random.nextDouble() * 255 * lightness);
         int g = (int) (random.nextDouble() * 255 * lightness);
         int b = (int) (random.nextDouble() * 255 * lightness);
@@ -207,7 +223,7 @@ public class Strips extends Base {
         opG = (Graphics2D) obi.getGraphics();
         opG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, // Anti-alias!
                 RenderingHints.VALUE_ANTIALIAS_ON);
-        opG.setColor(WHITE);
+        opG.setColor(DARK_GRAY);
         opG.fillRect(0, 0, w, h);
     }
 

@@ -17,13 +17,13 @@ import static java.awt.BasicStroke.CAP_ROUND;
 import static java.awt.Color.BLACK;
 import static java.awt.Color.WHITE;
 
-public class Layers extends Base {
+public class Flowers extends Base {
 
-    private static Layers layers = new Layers();
+    private static Flowers flowers = new Flowers();
     private String dir = host + "strips/";
     private String opFile = "Flowers";
-    private int wmm = 210;
-    private int hmm = 297;
+    private int wmm = 170; //190;
+    private int hmm = 560; //580;
     private double mm2in = 25.4;
     private double dpi = 300;
     private int w = (int) ((((double) wmm) / mm2in) * dpi);
@@ -32,8 +32,9 @@ public class Layers extends Base {
     private BufferedImage obi;
     private Graphics2D opG;
     private float outerStroke = 3;
-    private double numMin = ((double) wmm) * 0.5;
-    private double numMax = wmm * 15;
+    private double mx = wmm > hmm? wmm : hmm;
+    private double numMin = ((double) mx) * 20;
+    private double numMax = mx * 1;
     private Random random = new Random(1);
     private double flowerMinRad = 25;
     private double flowerMaxRad = 100;
@@ -49,7 +50,7 @@ public class Layers extends Base {
     private ArrayList<Color> colors = new ArrayList<Color>();
 
     public static void main(String[] args) throws Exception {
-        layers.run();
+        flowers.run();
     }
 
     private void run() throws Exception {
@@ -89,13 +90,15 @@ public class Layers extends Base {
 
         double iFr = (i / numLayers);
         double pass = (i + 1) / numLayers;
-        double radPos = w * 0.1 * random.nextDouble() + w * 0.33 * iFr + (0.66 * iFr * w * random.nextDouble());
+        double max = w>h ? w : h;
+        double radPosW = w * 0.1 * random.nextDouble() + max * 0.33 * iFr + (0.66 * iFr * max * random.nextDouble());
+        double radPosH = h * 0.1 * random.nextDouble() + max * 0.33 * iFr + (0.66 * iFr * max * random.nextDouble());
         double angPos = random.nextDouble() * 360;
 
-        double yOff = (1 - iFr) * w * 0.15;
+        double yOff = 0;// (1 - iFr) * h * 0.15;
 
-        double cx = cw + radPos * Math.cos(Math.toRadians(angPos));
-        double cy = yOff + ch + radPos * Math.sin(Math.toRadians(angPos));
+        double cx = cw + radPosW * Math.cos(Math.toRadians(angPos));
+        double cy = yOff + ch + radPosH * Math.sin(Math.toRadians(angPos));
         double rad = (flowerMinRad) + (random.nextDouble() * (flowerMaxRad - flowerMinRad));
 
         double n = 1 + (int) (random.nextDouble() * 7);
@@ -150,7 +153,7 @@ public class Layers extends Base {
 
     private Color getPastel(double pass) {
         Color col = colors.get((int) ((double) (colors.size()) * random.nextDouble()));
-        int g = (int) (pass * 4.0);
+        int g = (int) (pass * 5.0);
         Color col2 = new Color((int) (((double) col.getRed()) * pass),
                 (int) (((double) col.getGreen()) * pass),
                 (int) (((double) col.getBlue()) * pass));
